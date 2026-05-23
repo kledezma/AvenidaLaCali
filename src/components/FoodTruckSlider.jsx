@@ -5,6 +5,8 @@ import { shuffleItems } from "../utils/shuffleItems";
 
 const mobileSliderQuery = "(max-width: 649px)";
 const mobileWindowOffsets = [-2, -1, 0, 1, 2];
+const maxDragOffset = 118;
+const minimumSwipeDistance = 48;
 
 export function FoodTruckSlider() {
   const isMobileSlider = useMediaQuery(mobileSliderQuery);
@@ -12,8 +14,11 @@ export function FoodTruckSlider() {
   const [activeIndex, setActiveIndex] = useState(1);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [settleDirection, setSettleDirection] = useState(0);
   const gestureStartXRef = useRef(0);
   const activePointerIdRef = useRef(null);
+  const pendingDirectionRef = useRef(0);
+  const settleTimerRef = useRef(null);
 
   const getCircularIndex = (index) => {
     const count = shuffledFoodTrucks.length;
@@ -34,22 +39,38 @@ export function FoodTruckSlider() {
     setActiveIndex((currentIndex) => getCircularIndex(currentIndex + direction));
   };
 
+  const settleToDirection = (direction) => {
+    window.clearTimeout(settleTimerRef.current);
+
+    if (direction === 0) {
+      setIsDragging(false);
+      setDragOffset(0);
+      return;
+    }
+
+    pendingDirectionRef.current = direction;
+    setIsDragging(false);
+    setSettleDirection(direction);
+    setDragOffset(0);
+
+    settleTimerRef.current = window.setTimeout(() => {
+      moveTo(pendingDirectionRef.current);
+      pendingDirectionRef.current = 0;
+      setSettleDirection(0);
+      setDragOffset(0);
+    }, 260);
+  };
+
   const finishGesture = (clientX) => {
     const swipeDistance = clientX - gestureStartXRef.current;
-    const minimumSwipeDistance = 42;
     const direction =
       Math.abs(swipeDistance) < minimumSwipeDistance ? 0 : swipeDistance < 0 ? 1 : -1;
 
-    setIsDragging(false);
-    setDragOffset(0);
-
-    if (direction !== 0) {
-      moveTo(direction);
-    }
+    settleToDirection(direction);
   };
 
   const handlePointerDown = (event) => {
-    if (!isMobileSlider) {
+    if (!isMobileSlider || settleDirection !== 0) {
       return;
     }
 
@@ -65,7 +86,9 @@ export function FoodTruckSlider() {
     }
 
     const swipeDistance = event.clientX - gestureStartXRef.current;
-    const limitedOffset = Math.max(Math.min(swipeDistance, 96), -96);
+    const resistanceOffset =
+      Math.sign(swipeDistance) * Math.min(Math.abs(swipeDistance) * 0.72, maxDragOffset);
+    const limitedOffset = Math.round(resistanceOffset);
     setDragOffset(limitedOffset);
   };
 
@@ -88,7 +111,14 @@ export function FoodTruckSlider() {
       <div
         className={`restaurant-slider ${isMobileSlider ? "is-mobile" : "is-desktop"} ${
           isDragging ? "is-dragging" : ""
+        } ${settleDirection > 0 ? "is-settling-next" : ""} ${
+          settleDirection < 0 ? "is-settling-prev" : ""
         }`}
+        aria-busy={settleDirection !== 0}
+        aria-live="polite"
+        data-active-index={activeIndex}
+        data-pending-direction={pendingDirectionRef.current}
+        data-drag-offset={dragOffset}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

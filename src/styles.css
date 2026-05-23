@@ -422,6 +422,7 @@ img {
   --slider-card-width: min(76vw, 18rem);
   --slider-gap: 0.85rem;
   --drag-offset: 0px;
+  --settle-offset: 0px;
   display: flex;
   gap: var(--slider-gap);
   width: 100%;
@@ -446,15 +447,24 @@ img {
   transform: translateX(
     calc(
       ((100vw - var(--slider-card-width)) / 2) -
-        (2 * (var(--slider-card-width) + var(--slider-gap))) + var(--drag-offset)
+        (2 * (var(--slider-card-width) + var(--slider-gap))) + var(--drag-offset) +
+        var(--settle-offset)
     )
   );
-  transition: transform 240ms ease;
+  transition: transform 260ms cubic-bezier(0.22, 0.78, 0.28, 1);
   will-change: transform;
 }
 
 .restaurant-slider.is-mobile.is-dragging .restaurant-card {
   transition: none;
+}
+
+.restaurant-slider.is-mobile.is-settling-next {
+  --settle-offset: calc(-1 * (var(--slider-card-width) + var(--slider-gap)));
+}
+
+.restaurant-slider.is-mobile.is-settling-prev {
+  --settle-offset: calc(var(--slider-card-width) + var(--slider-gap));
 }
 
 .restaurant-slider.is-desktop {
