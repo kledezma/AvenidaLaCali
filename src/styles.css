@@ -419,21 +419,51 @@ img {
 }
 
 .restaurant-slider {
-  display: grid;
-  grid-auto-columns: minmax(15.5rem, 76vw);
-  grid-auto-flow: column;
-  gap: 0.85rem;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
+  --slider-card-width: min(76vw, 18rem);
+  --slider-gap: 0.85rem;
+  --drag-offset: 0px;
+  display: flex;
+  gap: var(--slider-gap);
+  width: 100%;
   padding: 0 1.1rem 0.55rem;
-  scroll-padding-inline: 1.1rem;
-  scroll-snap-type: none;
-  touch-action: pan-y;
+  user-select: none;
   scrollbar-width: none;
 }
 
 .restaurant-slider::-webkit-scrollbar {
   display: none;
+}
+
+.restaurant-slider.is-mobile {
+  overflow: hidden;
+  padding-right: 0;
+  padding-left: 0;
+  touch-action: pan-y;
+}
+
+.restaurant-slider.is-mobile .restaurant-card {
+  flex: 0 0 var(--slider-card-width);
+  transform: translateX(
+    calc(
+      ((100vw - var(--slider-card-width)) / 2) -
+        (2 * (var(--slider-card-width) + var(--slider-gap))) + var(--drag-offset)
+    )
+  );
+  transition: transform 240ms ease;
+  will-change: transform;
+}
+
+.restaurant-slider.is-mobile.is-dragging .restaurant-card {
+  transition: none;
+}
+
+.restaurant-slider.is-desktop {
+  justify-content: center;
+  overflow: visible;
+}
+
+.restaurant-slider.is-desktop .restaurant-card {
+  flex: 0 0 18rem;
 }
 
 .restaurant-card {
@@ -447,7 +477,6 @@ img {
     linear-gradient(145deg, rgba(255, 210, 26, 0.24), rgba(255, 255, 255, 0.05)),
     rgba(14, 15, 6, 0.92);
   box-shadow: 0 1rem 2.2rem rgba(0, 0, 0, 0.32);
-  scroll-snap-align: center;
 }
 
 .restaurant-card.light {
@@ -503,10 +532,6 @@ img {
   }
 
   .restaurant-slider {
-    grid-auto-columns: 18rem;
-    justify-content: center;
-    overflow-x: visible;
-    scroll-snap-type: x mandatory;
     touch-action: auto;
   }
 }
