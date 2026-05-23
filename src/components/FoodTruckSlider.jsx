@@ -4,13 +4,15 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 import { shuffleItems } from "../utils/shuffleItems";
 
 const mobileSliderQuery = "(max-width: 649px)";
+const loopCopyCount = 5;
+const middleCopyIndex = Math.floor(loopCopyCount / 2);
 
 export function FoodTruckSlider() {
   const isMobileSlider = useMediaQuery(mobileSliderQuery);
   const shuffledFoodTrucks = useMemo(() => shuffleItems(foodTrucks), []);
   const loopedFoodTrucks = useMemo(
     () =>
-      Array.from({ length: 3 }, (_, copyIndex) =>
+      Array.from({ length: loopCopyCount }, (_, copyIndex) =>
         shuffledFoodTrucks.map((foodTruck) => ({ ...foodTruck, copyIndex })),
       ).flat(),
     [shuffledFoodTrucks],
@@ -26,30 +28,45 @@ export function FoodTruckSlider() {
       return;
     }
 
+    let isRepositioning = false;
     const foodTruckCount = shuffledFoodTrucks.length;
-    const firstMiddleCard = slider?.children[foodTruckCount];
-    const firstNextCard = slider?.children[foodTruckCount * 2];
-    const secondMiddleCard = slider?.children[foodTruckCount + 1];
+    const firstMiddleCard = slider?.children[foodTruckCount * middleCopyIndex];
+    const firstNextCard = slider?.children[foodTruckCount * (middleCopyIndex + 1)];
+    const secondMiddleCard = slider?.children[foodTruckCount * middleCopyIndex + 1];
 
     if (!slider || !firstMiddleCard || !firstNextCard || !secondMiddleCard) {
       return;
     }
+
+    const middleStart = firstMiddleCard.offsetLeft;
+    const nextStart = firstNextCard.offsetLeft;
+    const cycleWidth = nextStart - middleStart;
+    const loopStart = middleStart - cycleWidth;
+    const loopEnd = nextStart + cycleWidth;
 
     const centerCard = (card) => {
       slider.scrollLeft = card.offsetLeft - (slider.clientWidth - card.clientWidth) / 2;
     };
 
     const keepSliderLooping = () => {
-      const middleStart = firstMiddleCard.offsetLeft;
-      const nextStart = firstNextCard.offsetLeft;
-      const cycleWidth = nextStart - middleStart;
-
-      if (slider.scrollLeft < middleStart) {
-        slider.scrollLeft += cycleWidth;
+      if (isRepositioning) {
+        return;
       }
 
-      if (slider.scrollLeft >= nextStart) {
+      if (slider.scrollLeft < loopStart) {
+        isRepositioning = true;
+        slider.scrollLeft += cycleWidth;
+        requestAnimationFrame(() => {
+          isRepositioning = false;
+        });
+      }
+
+      if (slider.scrollLeft >= loopEnd) {
+        isRepositioning = true;
         slider.scrollLeft -= cycleWidth;
+        requestAnimationFrame(() => {
+          isRepositioning = false;
+        });
       }
     };
 
