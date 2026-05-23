@@ -427,7 +427,8 @@ img {
   overscroll-behavior-x: contain;
   padding: 0 1.1rem 0.55rem;
   scroll-padding-inline: 1.1rem;
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: none;
+  touch-action: pan-y;
   scrollbar-width: none;
 }
 
@@ -505,5 +506,7 @@ img {
     grid-auto-columns: 18rem;
     justify-content: center;
     overflow-x: visible;
+    scroll-snap-type: x mandatory;
+    touch-action: auto;
   }
 }

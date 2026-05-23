@@ -19,6 +19,8 @@ export function FoodTruckSlider() {
   );
   const visibleFoodTrucks = isMobileSlider ? loopedFoodTrucks : shuffledFoodTrucks;
   const sliderRef = useRef(null);
+  const activeCardIndexRef = useRef(0);
+  const gestureStartXRef = useRef(0);
 
   useEffect(() => {
     const slider = sliderRef.current;
@@ -30,9 +32,11 @@ export function FoodTruckSlider() {
 
     let isRepositioning = false;
     const foodTruckCount = shuffledFoodTrucks.length;
-    const firstMiddleCard = slider?.children[foodTruckCount * middleCopyIndex];
+    const firstMiddleCardIndex = foodTruckCount * middleCopyIndex;
+    const firstMiddleCard = slider?.children[firstMiddleCardIndex];
     const firstNextCard = slider?.children[foodTruckCount * (middleCopyIndex + 1)];
-    const secondMiddleCard = slider?.children[foodTruckCount * middleCopyIndex + 1];
+    const secondMiddleCardIndex = firstMiddleCardIndex + 1;
+    const secondMiddleCard = slider?.children[secondMiddleCardIndex];
 
     if (!slider || !firstMiddleCard || !firstNextCard || !secondMiddleCard) {
       return;
@@ -48,6 +52,20 @@ export function FoodTruckSlider() {
       slider.scrollLeft = card.offsetLeft - (slider.clientWidth - card.clientWidth) / 2;
     };
 
+    const scrollToCard = (cardIndex, behavior = "smooth") => {
+      const card = slider.children[cardIndex];
+
+      if (!card) {
+        return;
+      }
+
+      activeCardIndexRef.current = cardIndex;
+      slider.scrollTo({
+        left: card.offsetLeft - (slider.clientWidth - card.clientWidth) / 2,
+        behavior,
+      });
+    };
+
     const keepSliderLooping = () => {
       if (isRepositioning) {
         return;
@@ -56,6 +74,7 @@ export function FoodTruckSlider() {
       if (slider.scrollLeft < loopStart) {
         isRepositioning = true;
         slider.scrollLeft += cycleWidth;
+        activeCardIndexRef.current += foodTruckCount;
         requestAnimationFrame(() => {
           isRepositioning = false;
         });
@@ -64,21 +83,42 @@ export function FoodTruckSlider() {
       if (slider.scrollLeft >= loopEnd) {
         isRepositioning = true;
         slider.scrollLeft -= cycleWidth;
+        activeCardIndexRef.current -= foodTruckCount;
         requestAnimationFrame(() => {
           isRepositioning = false;
         });
       }
     };
 
+    const handlePointerDown = (event) => {
+      gestureStartXRef.current = event.clientX;
+    };
+
+    const handlePointerUp = (event) => {
+      const swipeDistance = event.clientX - gestureStartXRef.current;
+      const minimumSwipeDistance = 36;
+      const direction =
+        Math.abs(swipeDistance) < minimumSwipeDistance ? 0 : swipeDistance < 0 ? 1 : -1;
+
+      scrollToCard(activeCardIndexRef.current + direction);
+    };
+
     requestAnimationFrame(() => {
+      activeCardIndexRef.current = secondMiddleCardIndex;
       centerCard(secondMiddleCard);
     });
 
     slider.addEventListener("scroll", keepSliderLooping, { passive: true });
+    slider.addEventListener("pointerdown", handlePointerDown, { passive: true });
+    slider.addEventListener("pointerup", handlePointerUp);
+    slider.addEventListener("pointercancel", handlePointerUp);
     window.addEventListener("resize", keepSliderLooping);
 
     return () => {
       slider.removeEventListener("scroll", keepSliderLooping);
+      slider.removeEventListener("pointerdown", handlePointerDown);
+      slider.removeEventListener("pointerup", handlePointerUp);
+      slider.removeEventListener("pointercancel", handlePointerUp);
       window.removeEventListener("resize", keepSliderLooping);
     };
   }, [isMobileSlider, shuffledFoodTrucks]);
